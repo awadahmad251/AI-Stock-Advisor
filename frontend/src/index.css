@@ -1,0 +1,216 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* -------- Global -------- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* -------- Dark Theme (default) -------- */
+body, .dark-theme {
+  background: #0a0e17;
+  color: #e5e7eb;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+}
+
+/* -------- Light Theme -------- */
+.light-theme {
+  background: #f8fafc !important;
+  color: #1e293b !important;
+}
+.light-theme .bg-dark-50 { background: #ffffff !important; }
+.light-theme .bg-dark-100 { background: #f1f5f9 !important; }
+.light-theme .bg-dark-200 { background: #e2e8f0 !important; }
+.light-theme .bg-dark { background: #f8fafc !important; }
+.light-theme .bg-dark-50\/50 { background: rgba(255,255,255,0.8) !important; }
+.light-theme .bg-dark-50\/80 { background: rgba(255,255,255,0.9) !important; }
+.light-theme .bg-dark-200\/50 { background: rgba(226,232,240,0.5) !important; }
+.light-theme .bg-dark-200\/40 { background: rgba(226,232,240,0.4) !important; }
+.light-theme .border-dark-300\/50,
+.light-theme .border-dark-300\/30,
+.light-theme .border-dark-400\/50,
+.light-theme .border-dark-400\/30,
+.light-theme .border-dark-400\/20 {
+  border-color: rgba(203, 213, 225, 0.6) !important;
+}
+.light-theme .text-white { color: #1e293b !important; }
+.light-theme .text-gray-200 { color: #334155 !important; }
+.light-theme .text-gray-300 { color: #475569 !important; }
+.light-theme .text-gray-400 { color: #64748b !important; }
+.light-theme .text-gray-500 { color: #94a3b8 !important; }
+.light-theme .text-gray-600 { color: #94a3b8 !important; }
+.light-theme input, .light-theme textarea, .light-theme select {
+  background: #e2e8f0 !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+}
+.light-theme input::placeholder, .light-theme textarea::placeholder {
+  color: #94a3b8 !important;
+}
+.light-theme .markdown-content p { color: #475569; }
+.light-theme .markdown-content strong { color: #059669; }
+.light-theme .markdown-content code { background: #e2e8f0; color: #059669; }
+.light-theme .markdown-content th { background: #e2e8f0; color: #059669; }
+.light-theme .markdown-content th,
+.light-theme .markdown-content td { border-color: #cbd5e1; }
+.light-theme .markdown-content blockquote { border-left-color: #059669; }
+.light-theme .markdown-content hr { border-top-color: #cbd5e1; }
+.light-theme .markdown-content h1 { color: #1e293b; border-bottom-color: #cbd5e1; }
+.light-theme .markdown-content h2 { color: #334155; }
+.light-theme .markdown-content h3 { color: #475569; }
+
+/* -------- Custom Scrollbar -------- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #141a2e;
+}
+::-webkit-scrollbar-thumb {
+  background: #313a4f;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f4963;
+}
+
+/* -------- Markdown Content Styling -------- */
+.markdown-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f9fafb;
+  margin: 1rem 0 0.5rem;
+  border-bottom: 1px solid #252d3f;
+  padding-bottom: 0.3rem;
+}
+.markdown-content h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #f3f4f6;
+  margin: 0.8rem 0 0.4rem;
+}
+.markdown-content h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #e5e7eb;
+  margin: 0.6rem 0 0.3rem;
+}
+.markdown-content p {
+  margin: 0.4rem 0;
+  line-height: 1.7;
+  color: #d1d5db;
+}
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5rem;
+  margin: 0.4rem 0;
+}
+.markdown-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+.markdown-content strong {
+  color: #00d4aa;
+  font-weight: 600;
+}
+.markdown-content em {
+  color: #9ca3af;
+}
+.markdown-content code {
+  background: #1c2333;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  color: #00d4aa;
+}
+.markdown-content blockquote {
+  border-left: 3px solid #00d4aa;
+  padding-left: 1rem;
+  margin: 0.5rem 0;
+  color: #9ca3af;
+  font-style: italic;
+}
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+.markdown-content th,
+.markdown-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #252d3f;
+  text-align: left;
+}
+.markdown-content th {
+  background: #1c2333;
+  color: #00d4aa;
+  font-weight: 600;
+}
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid #252d3f;
+  margin: 1rem 0;
+}
+
+/* -------- Glassmorphism -------- */
+.glass {
+  background: rgba(20, 26, 46, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(49, 58, 79, 0.5);
+}
+
+/* -------- Gradient Text -------- */
+.gradient-text {
+  background: linear-gradient(135deg, #00d4aa 0%, #3b82f6 50%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* -------- Glow Effects -------- */
+.glow-green {
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15);
+}
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* -------- Typing animation -------- */
+.typing-dot {
+  animation: typingBounce 1.4s infinite ease-in-out;
+}
+.typing-dot:nth-child(1) { animation-delay: 0s; }
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* -------- Pulse ring -------- */
+@keyframes pulseRing {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(0.8); opacity: 0.5; }
+}
+
+/* -------- Market ticker -------- */
+.ticker-wrap {
+  overflow: hidden;
+  white-space: nowrap;
+}
+.ticker-content {
+  display: inline-block;
+  animation: ticker 90s linear infinite;
+}
+@keyframes ticker {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
