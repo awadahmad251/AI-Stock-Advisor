@@ -12,9 +12,10 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ ./backend/
-COPY .env .env
 COPY rag/ ./rag/
-COPY data/ ./data/
+
+# Create data directory (SQLite DB will be created at runtime)
+RUN mkdir -p ./data
 
 WORKDIR /app/backend
 EXPOSE 8000

@@ -2,7 +2,8 @@ services:
   - type: web
     name: investiq-backend
     runtime: python
-    buildCommand: cd backend && pip install -r requirements.txt
+    buildCommand: |
+      cd backend && pip install -r requirements.txt && mkdir -p ../data
     startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GROQ_API_KEY
@@ -15,6 +16,8 @@ services:
         value: llama-3.3-70b-versatile
       - key: EMBEDDING_MODEL
         value: sentence-transformers/all-MiniLM-L6-v2
+      - key: PYTHON_VERSION
+        value: 3.11.7
     healthCheckPath: /api/ping
 
   - type: web
@@ -22,6 +25,10 @@ services:
     runtime: static
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: public, max-age=0, must-revalidate
     routes:
       - type: rewrite
         source: /api/*
