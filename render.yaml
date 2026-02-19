@@ -2,9 +2,10 @@ services:
   - type: web
     name: investiq-backend
     runtime: python
-    buildCommand: |
-      cd backend && pip install -r requirements.txt && mkdir -p ../data
-    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    buildCommand: "cd backend && pip install -r requirements.txt && mkdir -p ../data"
+    startCommand: "cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/ping
     envVars:
       - key: GROQ_API_KEY
         sync: false
@@ -17,13 +18,11 @@ services:
       - key: EMBEDDING_MODEL
         value: sentence-transformers/all-MiniLM-L6-v2
       - key: PYTHON_VERSION
-        value: 3.11.7
-    healthCheckPath: /api/ping
+        value: "3.11.7"
 
-  - type: web
-    name: investiq-frontend
-    runtime: static
-    buildCommand: cd frontend && npm ci && npm run build
+staticSites:
+  - name: investiq-frontend
+    buildCommand: "cd frontend && npm ci && npm run build"
     staticPublishPath: frontend/dist
     headers:
       - path: /*
