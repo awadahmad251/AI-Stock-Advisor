@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE = '/api';
+// In production, VITE_API_URL points to the Koyeb backend (e.g. https://xxx.koyeb.app/api)
+// In development, falls back to /api which Vite proxies to localhost:8000
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE,
