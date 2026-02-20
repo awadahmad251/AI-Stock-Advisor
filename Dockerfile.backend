@@ -1,4 +1,4 @@
-# Backend-only Dockerfile for Koyeb deployment
+# Backend Dockerfile for Hugging Face Spaces (Docker SDK)
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -19,6 +19,7 @@ RUN mkdir -p ./data
 
 WORKDIR /app/backend
 
-EXPOSE 8000
+# HF Spaces uses port 7860
+EXPOSE 7860
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
