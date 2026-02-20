@@ -7,26 +7,21 @@ import threading
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import DATA_PATH
+from services import yahoo_direct
 
 logger = logging.getLogger("investiq")
 
-# ── Custom session for yfinance (curl_cffi impersonates Chrome TLS) ────
-try:
-    from curl_cffi import requests as curl_requests
-    _yf_session = curl_requests.Session(impersonate="chrome")
-    logger.info("yfinance: using curl_cffi session (Chrome TLS fingerprint)")
-except ImportError:
-    import requests as _requests_lib
-    from requests.adapters import HTTPAdapter
-    from urllib3.util.retry import Retry
-    _yf_session = _requests_lib.Session()
-    _yf_session.headers.update({
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    })
-    _retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
-    _yf_session.mount("https://", HTTPAdapter(max_retries=_retry))
-    _yf_session.mount("http://", HTTPAdapter(max_retries=_retry))
-    logger.warning("yfinance: curl_cffi not available, falling back to requests")
+# ── Fallback yfinance session (used only when yahoo_direct fails) ────
+import requests as _requests_lib
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+_yf_session = _requests_lib.Session()
+_yf_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+})
+_retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
+_yf_session.mount("https://", HTTPAdapter(max_retries=_retry))
+_yf_session.mount("http://", HTTPAdapter(max_retries=_retry))
 
 # ── In-memory TTL cache (bounded) ─────────────────────────
 _cache = {}
@@ -131,6 +126,91 @@ class StockService:
         cached = _cache_get(cache_key, ttl=300)
         if cached is not None:
             return cached
+
+        # ── Primary: direct Yahoo API ──
+        result = self._get_stock_data_direct(ticker, period)
+        if result:
+            _cache_set(cache_key, result)
+            return result
+
+        # ── Fallback: yfinance library ──
+        result = self._get_stock_data_yf(ticker, period)
+        if result:
+            _cache_set(cache_key, result)
+            return result
+
+        return None
+
+    def _get_stock_data_direct(self, ticker: str, period: str = "1mo"):
+        """Fetch stock data via direct Yahoo Finance API calls."""
+        try:
+            summary = yahoo_direct.get_quote_summary(ticker)
+            chart = yahoo_direct.get_chart(ticker, period)
+            if not summary and not chart:
+                return None
+
+            current_price = (summary or {}).get("currentPrice") or 0
+            prev_close = (summary or {}).get("previousClose") or 0
+
+            if current_price and prev_close:
+                change = round(current_price - prev_close, 2)
+                change_pct = round((change / prev_close) * 100, 2)
+            else:
+                change = 0
+                change_pct = 0
+
+            div_yield = (summary or {}).get("dividendYield")
+
+            history_data = []
+            if chart:
+                import datetime
+                timestamps = chart.get("timestamps", [])
+                opens = chart.get("opens", [])
+                highs = chart.get("highs", [])
+                lows = chart.get("lows", [])
+                closes = chart.get("closes", [])
+                volumes = chart.get("volumes", [])
+                for i in range(len(timestamps)):
+                    try:
+                        dt = datetime.datetime.fromtimestamp(timestamps[i])
+                        history_data.append({
+                            "date": str(dt.date()),
+                            "open": round(float(opens[i] or 0), 2),
+                            "high": round(float(highs[i] or 0), 2),
+                            "low": round(float(lows[i] or 0), 2),
+                            "close": round(float(closes[i] or 0), 2),
+                            "volume": int(volumes[i] or 0),
+                        })
+                    except (ValueError, TypeError, IndexError):
+                        continue
+
+            s = summary or {}
+            return {
+                "symbol": ticker.upper(),
+                "name": s.get("longName") or s.get("shortName") or ticker,
+                "current_price": current_price,
+                "previous_close": prev_close,
+                "change": change,
+                "change_percent": change_pct,
+                "market_cap": s.get("marketCap", 0),
+                "pe_ratio": s.get("trailingPE"),
+                "forward_pe": s.get("forwardPE"),
+                "dividend_yield": round(div_yield, 2) if div_yield else None,
+                "52_week_high": s.get("fiftyTwoWeekHigh"),
+                "52_week_low": s.get("fiftyTwoWeekLow"),
+                "volume": s.get("volume", 0),
+                "avg_volume": 0,
+                "sector": "N/A",
+                "industry": "N/A",
+                "description": "",
+                "history": history_data,
+            }
+        except Exception as e:
+            logger.warning(f"yahoo_direct stock_data {ticker}: {e}")
+            return None
+
+    def _get_stock_data_yf(self, ticker: str, period: str = "1mo"):
+        """Fallback: fetch stock data via yfinance library."""
         try:
             stock = yf.Ticker(ticker, session=_yf_session)
             info = stock.info
@@ -186,10 +266,9 @@ class StockService:
                 "description": info.get("longBusinessSummary", ""),
                 "history": history_data,
             }
-            _cache_set(cache_key, result)
             return result
         except Exception as e:
-            print(f"Error fetching data for {ticker}: {e}")
+            logger.warning(f"yfinance stock_data {ticker}: {e}")
             return None
 
     def get_stock_history(self, ticker: str, period: str = "1y"):
@@ -198,10 +277,34 @@ class StockService:
         cached = _cache_get(cache_key, ttl=300)
         if cached is not None:
             return cached
+
+        # ── Primary: direct Yahoo API ──
+        chart = yahoo_direct.get_chart(ticker, period)
+        if chart and chart.get("timestamps"):
+            import datetime
+            result = []
+            ts = chart["timestamps"]
+            for i in range(len(ts)):
+                try:
+                    dt = datetime.datetime.fromtimestamp(ts[i])
+                    result.append({
+                        "date": str(dt.date()),
+                        "open": round(float(chart["opens"][i] or 0), 2),
+                        "high": round(float(chart["highs"][i] or 0), 2),
+                        "low": round(float(chart["lows"][i] or 0), 2),
+                        "close": round(float(chart["closes"][i] or 0), 2),
+                        "volume": int(chart["volumes"][i] or 0),
+                    })
+                except (ValueError, TypeError, IndexError):
+                    continue
+            if result:
+                _cache_set(cache_key, result)
+                return result
+
+        # ── Fallback: yfinance ──
         try:
             stock = yf.Ticker(ticker, session=_yf_session)
             hist = stock.history(period=period)
-
             result = [
                 {
                     "date": str(date.date()),
@@ -216,7 +319,7 @@ class StockService:
             _cache_set(cache_key, result)
             return result
         except Exception as e:
-            print(f"Error fetching history for {ticker}: {e}")
+            logger.warning(f"yfinance history {ticker}: {e}")
             return []
 
     def get_market_summary(self):
@@ -249,6 +352,18 @@ class StockService:
 
         def fetch_ticker(symbol, name, is_index=False):
             try:
+                # ── Primary: direct Yahoo API ──
+                sp = yahoo_direct.get_simple_price(symbol)
+                if sp:
+                    return {
+                        "symbol": symbol,
+                        "name": name,
+                        "price": sp["price"],
+                        "change": sp["change"],
+                        "change_percent": sp["changePercent"],
+                        "type": "index" if is_index else "stock",
+                    }
+                # ── Fallback: yfinance ──
                 tkr = yf.Ticker(symbol, session=_yf_session)
                 hist = tkr.history(period="5d")
                 if len(hist) >= 2:
@@ -270,7 +385,7 @@ class StockService:
                     "type": "index" if is_index else "stock",
                 }
             except Exception as e:
-                print(f"Error fetching {name}: {e}")
+                logger.warning(f"fetch_ticker {name}: {e}")
                 return None
 
         futures = {}

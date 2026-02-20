@@ -2,6 +2,7 @@ from fastapi import APIRouter, Query, HTTPException
 from services.stock_service import stock_service, _yf_session
 from services.news_service import news_service
 from services.sentiment_service import analyze_sentiment
+from services import yahoo_direct
 import asyncio
 import re
 import yfinance as yf
@@ -26,14 +27,33 @@ async def backtest(
     """What-if backtester: how much would $X invested Y years ago be worth today?"""
     try:
         sym = validate_ticker(symbol)
-        stock = yf.Ticker(sym, session=_yf_session)
-        hist = stock.history(period=period)
 
-        if hist.empty or len(hist) < 2:
+        # Primary: direct Yahoo API
+        chart_data = yahoo_direct.get_chart(sym, period)
+        hist_dates = []
+        hist_closes = []
+        if chart_data and chart_data.get("timestamps"):
+            import datetime
+            for i, ts in enumerate(chart_data["timestamps"]):
+                c = chart_data["closes"][i]
+                if c is not None:
+                    hist_dates.append(datetime.datetime.fromtimestamp(ts).date())
+                    hist_closes.append(float(c))
+
+        # Fallback: yfinance
+        if len(hist_closes) < 2:
+            stock = yf.Ticker(sym, session=_yf_session)
+            hist = stock.history(period=period)
+            if hist.empty or len(hist) < 2:
+                return {"error": f"Not enough data for {symbol}"}
+            hist_dates = [d.date() for d in hist.index]
+            hist_closes = [float(row["Close"]) for _, row in hist.iterrows()]
+
+        if len(hist_closes) < 2:
             return {"error": f"Not enough data for {symbol}"}
 
-        start_price = float(hist["Close"].iloc[0])
-        end_price = float(hist["Close"].iloc[-1])
+        start_price = hist_closes[0]
+        end_price = hist_closes[-1]
         shares_bought = investment / start_price
         final_value = shares_bought * end_price
         total_return = final_value - investment
@@ -41,12 +61,12 @@ async def backtest(
 
         # Build growth chart
         chart = []
-        for date, row in hist.iterrows():
+        for i in range(len(hist_closes)):
             try:
-                price = float(row["Close"])
+                price = hist_closes[i]
                 value = shares_bought * price
                 chart.append({
-                    "date": str(date.date()),
+                    "date": str(hist_dates[i]),
                     "price": round(price, 2),
                     "value": round(value, 2),
                 })
@@ -54,7 +74,7 @@ async def backtest(
                 continue
 
         # Calculate annualized return
-        days = (hist.index[-1] - hist.index[0]).days
+        days = (hist_dates[-1] - hist_dates[0]).days
         years = days / 365.25
         annualized = ((final_value / investment) ** (1 / years) - 1) * 100 if years > 0 else 0
 
@@ -70,8 +90,8 @@ async def backtest(
             "symbol": sym,
             "investment": investment,
             "period": period,
-            "start_date": str(hist.index[0].date()),
-            "end_date": str(hist.index[-1].date()),
+            "start_date": str(hist_dates[0]),
+            "end_date": str(hist_dates[-1]),
             "start_price": round(start_price, 2),
             "end_price": round(end_price, 2),
             "shares_bought": round(shares_bought, 4),

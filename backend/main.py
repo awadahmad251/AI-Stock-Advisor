@@ -271,20 +271,35 @@ async def ping():
 
 @app.get("/api/debug/yfinance")
 async def debug_yfinance():
-    """Debug endpoint to test yfinance with curl_cffi."""
-    import yfinance as yf
+    """Debug endpoint to test both direct Yahoo API and yfinance fallback."""
     import traceback
-    from services.stock_service import _yf_session
-    results = {"session_type": type(_yf_session).__module__ + "." + type(_yf_session).__name__}
+    from services import yahoo_direct
+    results = {}
+
+    # Test 1: direct Yahoo API
     try:
+        sp = yahoo_direct.get_simple_price("AAPL")
+        results["direct_price"] = sp
+    except Exception as e:
+        results["direct_error"] = str(e)
+
+    # Test 2: direct quote summary
+    try:
+        qs = yahoo_direct.get_quote_summary("AAPL")
+        results["direct_summary_keys"] = len(qs) if qs else 0
+        results["direct_currentPrice"] = (qs or {}).get("currentPrice")
+    except Exception as e:
+        results["direct_summary_error"] = str(e)
+
+    # Test 3: yfinance fallback
+    try:
+        import yfinance as yf
+        from services.stock_service import _yf_session
         tkr = yf.Ticker("AAPL", session=_yf_session)
         hist = tkr.history(period="5d")
-        results["history_len"] = len(hist)
-        results["last_close"] = float(hist["Close"].iloc[-1]) if not hist.empty else None
-        info = tkr.info
-        results["info_keys_count"] = len(info) if info else 0
-        results["currentPrice"] = info.get("currentPrice", info.get("regularMarketPrice"))
+        results["yf_history_len"] = len(hist)
+        results["yf_last_close"] = float(hist["Close"].iloc[-1]) if not hist.empty else None
     except Exception as e:
-        results["error"] = str(e)
-        results["traceback"] = traceback.format_exc()
+        results["yf_error"] = str(e)
+
     return results
