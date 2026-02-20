@@ -260,6 +260,12 @@ async def health_check():
     }
 
 
+@app.get("/")
+async def root():
+    """Root health check — HF Spaces probes this."""
+    return {"status": "ok"}
+
+
 @app.get("/api/ping")
 async def ping():
     """Ultra-fast endpoint — responds even while RAG is still loading."""
