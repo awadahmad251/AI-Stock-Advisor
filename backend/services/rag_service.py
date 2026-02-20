@@ -36,6 +36,24 @@ class RAGService:
                 self.documents = json.load(f)
             self.initialized = True
             print(f"  Loaded {len(self.documents)} documents from cache")
+        elif os.path.exists(docs_file):
+            # documents.json exists but index.faiss missing — rebuild index from docs
+            print("  Found documents.json but no index.faiss — rebuilding index...")
+            with open(docs_file, "r", encoding="utf-8") as f:
+                self.documents = json.load(f)
+            texts = [doc["text"] for doc in self.documents]
+            print(f"  Generating embeddings for {len(texts)} documents...")
+            embeddings = self.model.encode(texts, show_progress_bar=True, batch_size=64)
+            dimension = embeddings.shape[1]
+            self.index = faiss.IndexFlatIP(dimension)
+            embeddings = embeddings.astype("float32")
+            faiss.normalize_L2(embeddings)
+            self.index.add(embeddings)
+            # Save rebuilt index
+            os.makedirs(FAISS_INDEX_PATH, exist_ok=True)
+            faiss.write_index(self.index, index_file)
+            self.initialized = True
+            print(f"  Rebuilt FAISS index with {len(self.documents)} documents")
         else:
             print("  Building new FAISS index from S&P 500 data...")
             await self.build_index()
