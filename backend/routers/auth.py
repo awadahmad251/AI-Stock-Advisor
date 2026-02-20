@@ -113,6 +113,27 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 
+@router.get("/users")
+async def list_users(db: Session = Depends(get_db)):
+    """List all registered users (admin view)"""
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return {
+        "total": len(users),
+        "users": [
+            {
+                "id": u.id,
+                "email": u.email,
+                "username": u.username,
+                "full_name": u.full_name,
+                "is_premium": u.is_premium,
+                "is_active": u.is_active,
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+            }
+            for u in users
+        ],
+    }
+
+
 @router.get("/me")
 async def get_me(user: User = Depends(get_current_user)):
     """Get current authenticated user"""
