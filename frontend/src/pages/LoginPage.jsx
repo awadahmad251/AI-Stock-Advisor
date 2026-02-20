@@ -80,6 +80,11 @@ export default function LoginPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} autoComplete="off" className="space-y-4">
+            {/* Hidden honeypot fields to absorb browser autofill */}
+            <div aria-hidden="true" style={{ position: 'absolute', opacity: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+              <input type="email" name="fake-email-trap" tabIndex={-1} />
+              <input type="password" name="fake-password-trap" tabIndex={-1} />
+            </div>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <input
@@ -88,7 +93,8 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                autoComplete="off"
+                name="iq-em"
+                autoComplete="one-time-code"
                 className="w-full pl-10 pr-4 py-3 bg-dark-200 border border-dark-300/50 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent-green/50 focus:ring-1 focus:ring-accent-green/30 transition-all"
               />
             </div>
@@ -103,7 +109,8 @@ export default function LoginPage() {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
-                    autoComplete="off"
+                    name="iq-un"
+                    autoComplete="one-time-code"
                     className="w-full pl-10 pr-4 py-3 bg-dark-200 border border-dark-300/50 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent-blue/50 focus:ring-1 focus:ring-accent-blue/30 transition-all"
                   />
                 </div>
@@ -114,7 +121,8 @@ export default function LoginPage() {
                     placeholder="Full Name (optional)"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    autoComplete="off"
+                    name="iq-fn"
+                    autoComplete="one-time-code"
                     className="w-full pl-10 pr-4 py-3 bg-dark-200 border border-dark-300/50 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent-blue/50 focus:ring-1 focus:ring-accent-blue/30 transition-all"
                   />
                 </div>
@@ -130,7 +138,8 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                autoComplete="off"
+                name="iq-pw"
+                autoComplete="new-password"
                 className="w-full pl-10 pr-4 py-3 bg-dark-200 border border-dark-300/50 rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-accent-green/50 focus:ring-1 focus:ring-accent-green/30 transition-all"
               />
             </div>
