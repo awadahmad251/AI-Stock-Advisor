@@ -267,3 +267,27 @@ async def ping():
         "status": "ok",
         "rag_ready": startup_state["rag_ready"],
     }
+
+
+@app.get("/api/debug/yfinance")
+async def debug_yfinance():
+    """Debug endpoint to test yfinance directly."""
+    import yfinance as yf
+    import requests as _req
+    import traceback
+    results = {}
+    try:
+        sess = _req.Session()
+        sess.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        tkr = yf.Ticker("AAPL", session=sess)
+        hist = tkr.history(period="5d")
+        results["history_len"] = len(hist)
+        results["history_cols"] = list(hist.columns) if not hist.empty else []
+        results["last_close"] = float(hist["Close"].iloc[-1]) if not hist.empty else None
+        info = tkr.info
+        results["info_keys_count"] = len(info) if info else 0
+        results["currentPrice"] = info.get("currentPrice", info.get("regularMarketPrice"))
+    except Exception as e:
+        results["error"] = str(e)
+        results["traceback"] = traceback.format_exc()
+    return results

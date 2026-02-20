@@ -5,6 +5,8 @@ import os
 import time
 import threading
 import requests as _requests_lib
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import DATA_PATH
 
@@ -17,6 +19,9 @@ _yf_session.headers.update({
     "Accept-Encoding": "gzip, deflate",
     "Connection": "keep-alive",
 })
+_retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
+_yf_session.mount("https://", HTTPAdapter(max_retries=_retry))
+_yf_session.mount("http://", HTTPAdapter(max_retries=_retry))
 
 # ── In-memory TTL cache (bounded) ─────────────────────────
 _cache = {}
