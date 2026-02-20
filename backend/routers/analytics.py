@@ -181,7 +181,7 @@ async def sector_heatmap():
 async def earnings_calendar():
     """Get upcoming earnings dates for major S&P 500 stocks — concurrent"""
     companies = stock_service.get_sp500_list()
-    symbols = [c["symbol"] for c in companies[:50]]
+    symbols = [c["symbol"] for c in companies[:20]]
 
     def fetch_earnings(sym):
         try:

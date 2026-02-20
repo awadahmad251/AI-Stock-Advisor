@@ -52,16 +52,49 @@ body, .dark-theme {
   color: #94a3b8 !important;
 }
 .light-theme .markdown-content p { color: #475569; }
+.light-theme .markdown-content li { color: #475569; }
 .light-theme .markdown-content strong { color: #059669; }
 .light-theme .markdown-content code { background: #e2e8f0; color: #059669; }
 .light-theme .markdown-content th { background: #e2e8f0; color: #059669; }
 .light-theme .markdown-content th,
-.light-theme .markdown-content td { border-color: #cbd5e1; }
-.light-theme .markdown-content blockquote { border-left-color: #059669; }
+.light-theme .markdown-content td { border-color: #cbd5e1; color: #334155; }
+.light-theme .markdown-content blockquote { border-left-color: #059669; color: #475569; }
 .light-theme .markdown-content hr { border-top-color: #cbd5e1; }
 .light-theme .markdown-content h1 { color: #1e293b; border-bottom-color: #cbd5e1; }
 .light-theme .markdown-content h2 { color: #334155; }
 .light-theme .markdown-content h3 { color: #475569; }
+
+/* -------- Light Theme — Heatmap -------- */
+.light-theme .bg-green-600 { background: #16a34a !important; }
+.light-theme .bg-green-500\/80 { background: rgba(34,197,94,0.8) !important; }
+.light-theme .bg-green-500\/50 { background: rgba(34,197,94,0.5) !important; }
+.light-theme .bg-green-500\/20 { background: rgba(34,197,94,0.2) !important; }
+.light-theme .bg-red-500\/20 { background: rgba(239,68,68,0.2) !important; }
+.light-theme .bg-red-500\/50 { background: rgba(239,68,68,0.5) !important; }
+.light-theme .bg-red-500\/80 { background: rgba(239,68,68,0.8) !important; }
+.light-theme .bg-red-600 { background: #dc2626 !important; }
+.light-theme .text-green-300 { color: #15803d !important; }
+.light-theme .text-green-400 { color: #16a34a !important; }
+.light-theme .text-red-300 { color: #b91c1c !important; }
+.light-theme .text-red-400 { color: #dc2626 !important; }
+.light-theme .text-white\/40 { color: rgba(30,41,59,0.4) !important; }
+.light-theme .text-white\/70 { color: rgba(30,41,59,0.7) !important; }
+.light-theme .bg-black\/20 { background: rgba(0,0,0,0.08) !important; }
+
+/* -------- Light Theme — Chatbot / General -------- */
+.light-theme .text-gray-100 { color: #334155 !important; }
+.light-theme .bg-dark-100 { background: #f1f5f9 !important; }
+.light-theme .bg-dark-200\/30 { background: rgba(226,232,240,0.3) !important; }
+.light-theme .text-accent-green { color: #059669 !important; }
+.light-theme .text-accent-blue { color: #2563eb !important; }
+.light-theme .placeholder-gray-500::placeholder { color: #94a3b8 !important; }
+.light-theme .text-\[10px\] { color: #64748b; }
+.light-theme .gradient-text {
+  background: linear-gradient(135deg, #059669 0%, #2563eb 50%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
 
 /* -------- Custom Scrollbar -------- */
 ::-webkit-scrollbar {

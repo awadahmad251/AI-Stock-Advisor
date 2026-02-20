@@ -142,7 +142,7 @@ def get_quote_summary(symbol: str) -> dict | None:
 
     url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
     params = {
-        "modules": "price,summaryDetail,defaultKeyStatistics,financialData",
+        "modules": "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile",
     }
     if _cookie_cache["crumb"]:
         params["crumb"] = _cookie_cache["crumb"]
@@ -161,6 +161,7 @@ def get_quote_summary(symbol: str) -> dict | None:
         summary = results[0].get("summaryDetail", {})
         stats = results[0].get("defaultKeyStatistics", {})
         fin = results[0].get("financialData", {})
+        profile = results[0].get("assetProfile", {})
 
         def _val(d, k):
             v = d.get(k, {})
@@ -188,6 +189,9 @@ def get_quote_summary(symbol: str) -> dict | None:
             "trailingEps": _val(stats, "trailingEps"),
             "targetMeanPrice": _val(fin, "targetMeanPrice"),
             "recommendationKey": _val(fin, "recommendationKey"),
+            "sector": profile.get("sector", ""),
+            "industry": profile.get("industry", ""),
+            "longBusinessSummary": (profile.get("longBusinessSummary") or "")[:500],
             "currency": _val(price, "currency") or "USD",
             "exchange": _val(price, "exchangeName"),
         }

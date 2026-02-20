@@ -200,9 +200,9 @@ class StockService:
                 "52_week_low": s.get("fiftyTwoWeekLow"),
                 "volume": s.get("volume", 0),
                 "avg_volume": 0,
-                "sector": "N/A",
-                "industry": "N/A",
-                "description": "",
+                "sector": s.get("sector") or "N/A",
+                "industry": s.get("industry") or "N/A",
+                "description": s.get("longBusinessSummary", "")[:500],
                 "history": history_data,
             }
         except Exception as e:
