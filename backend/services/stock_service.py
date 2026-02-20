@@ -4,8 +4,19 @@ import json
 import os
 import time
 import threading
+import requests as _requests_lib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import DATA_PATH
+
+# ── Custom session for yfinance (fixes blocks on cloud/shared IPs) ────
+_yf_session = _requests_lib.Session()
+_yf_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate",
+    "Connection": "keep-alive",
+})
 
 # ── In-memory TTL cache (bounded) ─────────────────────────
 _cache = {}
@@ -111,7 +122,7 @@ class StockService:
         if cached is not None:
             return cached
         try:
-            stock = yf.Ticker(ticker)
+            stock = yf.Ticker(ticker, session=_yf_session)
             info = stock.info
             hist = stock.history(period=period)
 
@@ -178,7 +189,7 @@ class StockService:
         if cached is not None:
             return cached
         try:
-            stock = yf.Ticker(ticker)
+            stock = yf.Ticker(ticker, session=_yf_session)
             hist = stock.history(period=period)
 
             result = [
@@ -228,7 +239,7 @@ class StockService:
 
         def fetch_ticker(symbol, name, is_index=False):
             try:
-                tkr = yf.Ticker(symbol)
+                tkr = yf.Ticker(symbol, session=_yf_session)
                 hist = tkr.history(period="5d")
                 if len(hist) >= 2:
                     current = round(float(hist["Close"].iloc[-1]), 2)

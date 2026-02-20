@@ -5,8 +5,17 @@ from services.sentiment_service import analyze_sentiment
 import asyncio
 import re
 import yfinance as yf
+import requests as _requests_lib
 
 router = APIRouter()
+
+# ── Custom session for yfinance (fixes blocks on cloud/shared IPs) ────
+_yf_session = _requests_lib.Session()
+_yf_session.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+})
 
 TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(\.?[A-Z])?$')
 
@@ -26,7 +35,7 @@ async def backtest(
     """What-if backtester: how much would $X invested Y years ago be worth today?"""
     try:
         sym = validate_ticker(symbol)
-        stock = yf.Ticker(sym)
+        stock = yf.Ticker(sym, session=_yf_session)
         hist = stock.history(period=period)
 
         if hist.empty or len(hist) < 2:
@@ -165,7 +174,7 @@ async def earnings_calendar():
 
     def fetch_earnings(sym):
         try:
-            stock = yf.Ticker(sym)
+            stock = yf.Ticker(sym, session=_yf_session)
             cal = stock.calendar
             if cal is not None and not (hasattr(cal, 'empty') and cal.empty):
                 if isinstance(cal, dict):
