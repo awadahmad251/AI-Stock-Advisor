@@ -8,17 +8,33 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('investiq_token'));
   const [loading, setLoading] = useState(true);
 
-  // On mount: if we have a stored token, validate it
+  // On mount: if we have a stored token, validate it (with retry for cold starts)
   useEffect(() => {
     if (token) {
-      getMe(token)
-        .then((u) => setUser(u))
-        .catch(() => {
-          // Token expired / invalid
-          localStorage.removeItem('investiq_token');
-          setToken(null);
-        })
-        .finally(() => setLoading(false));
+      const validateToken = async (retries = 3) => {
+        for (let i = 0; i < retries; i++) {
+          try {
+            const u = await getMe(token);
+            setUser(u);
+            return;
+          } catch (err) {
+            const status = err.response?.status;
+            // 401/403 = token truly invalid → clear it
+            if (status === 401 || status === 403) {
+              localStorage.removeItem('investiq_token');
+              setToken(null);
+              return;
+            }
+            // Network error / backend cold start → retry
+            if (i < retries - 1) {
+              await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
+            }
+          }
+        }
+        // All retries failed but token might still be valid → keep it
+        // User will see data once backend wakes up
+      };
+      validateToken().finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
