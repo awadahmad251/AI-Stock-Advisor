@@ -2,6 +2,7 @@ fastapi==0.109.0
 uvicorn[standard]==0.27.0
 python-dotenv==1.0.0
 yfinance==0.2.36
+curl_cffi>=0.5.0
 newsapi-python==0.2.7
 faiss-cpu>=1.9.0
 sentence-transformers>=2.3.1

@@ -271,18 +271,15 @@ async def ping():
 
 @app.get("/api/debug/yfinance")
 async def debug_yfinance():
-    """Debug endpoint to test yfinance directly."""
+    """Debug endpoint to test yfinance with curl_cffi."""
     import yfinance as yf
-    import requests as _req
     import traceback
-    results = {}
+    from services.stock_service import _yf_session
+    results = {"session_type": type(_yf_session).__module__ + "." + type(_yf_session).__name__}
     try:
-        sess = _req.Session()
-        sess.headers["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        tkr = yf.Ticker("AAPL", session=sess)
+        tkr = yf.Ticker("AAPL", session=_yf_session)
         hist = tkr.history(period="5d")
         results["history_len"] = len(hist)
-        results["history_cols"] = list(hist.columns) if not hist.empty else []
         results["last_close"] = float(hist["Close"].iloc[-1]) if not hist.empty else None
         info = tkr.info
         results["info_keys_count"] = len(info) if info else 0

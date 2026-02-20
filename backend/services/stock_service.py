@@ -4,24 +4,29 @@ import json
 import os
 import time
 import threading
-import requests as _requests_lib
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from config import DATA_PATH
 
-# ── Custom session for yfinance (fixes blocks on cloud/shared IPs) ────
-_yf_session = _requests_lib.Session()
-_yf_session.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Accept-Encoding": "gzip, deflate",
-    "Connection": "keep-alive",
-})
-_retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
-_yf_session.mount("https://", HTTPAdapter(max_retries=_retry))
-_yf_session.mount("http://", HTTPAdapter(max_retries=_retry))
+logger = logging.getLogger("investiq")
+
+# ── Custom session for yfinance (curl_cffi impersonates Chrome TLS) ────
+try:
+    from curl_cffi import requests as curl_requests
+    _yf_session = curl_requests.Session(impersonate="chrome")
+    logger.info("yfinance: using curl_cffi session (Chrome TLS fingerprint)")
+except ImportError:
+    import requests as _requests_lib
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+    _yf_session = _requests_lib.Session()
+    _yf_session.headers.update({
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    })
+    _retry = Retry(total=3, backoff_factor=0.5, status_forcelist=[429, 500, 502, 503, 504])
+    _yf_session.mount("https://", HTTPAdapter(max_retries=_retry))
+    _yf_session.mount("http://", HTTPAdapter(max_retries=_retry))
+    logger.warning("yfinance: curl_cffi not available, falling back to requests")
 
 # ── In-memory TTL cache (bounded) ─────────────────────────
 _cache = {}
