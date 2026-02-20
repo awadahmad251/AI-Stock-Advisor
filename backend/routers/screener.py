@@ -57,7 +57,7 @@ async def stock_screener(
         results.append({
             "symbol": data["symbol"],
             "name": data["name"],
-            "sector": company["sector"] if data.get("sector") in (None, "N/A", "") else data["sector"],
+            "sector": company["sector"] if not data.get("sector") or str(data.get("sector")).strip().upper() in ("N/A", "") else data["sector"],
             "current_price": data["current_price"],
             "change_percent": data["change_percent"],
             "market_cap": mc,

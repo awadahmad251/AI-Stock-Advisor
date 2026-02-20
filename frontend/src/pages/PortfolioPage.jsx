@@ -53,7 +53,13 @@ export default function PortfolioPage() {
   };
 
   const handleExportPDF = () => {
-    if (portfolio) exportPortfolioPDF(portfolio);
+    if (!portfolio) return;
+    // Dynamically import jsPDF and autotable only in browser
+    import('../utils/pdfExport').then(({ exportPortfolioPDF }) => {
+      exportPortfolioPDF(portfolio);
+    }).catch((err) => {
+      alert('Failed to load PDF export.');
+    });
   };
 
   if (loading) {
