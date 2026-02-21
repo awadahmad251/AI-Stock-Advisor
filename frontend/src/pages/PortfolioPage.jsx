@@ -52,14 +52,33 @@ export default function PortfolioPage() {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportCSV = () => {
     if (!portfolio) return;
-    // Dynamically import jsPDF and autotable only in browser
-    import('../utils/pdfExport').then(({ exportPortfolioPDF }) => {
-      exportPortfolioPDF(portfolio);
-    }).catch((err) => {
-      alert('Failed to load PDF export.');
-    });
+    // CSV export logic (copied from pdfExport fallback)
+    const holdings = portfolio?.holdings || [];
+    if (holdings && holdings.length > 0) {
+      const csvRows = [
+        ['Symbol', 'Shares', 'Buy Price', 'Current', 'Value', 'P&L %'],
+        ...holdings.map(h => [
+          h.symbol,
+          h.shares,
+          h.buy_price,
+          h.current_price || '',
+          h.market_value || '',
+          h.buy_price > 0 ? (((h.current_price - h.buy_price) / h.buy_price) * 100).toFixed(2) + '%' : ''
+        ])
+      ];
+      const csvContent = csvRows.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'portfolio-report.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   if (loading) {
@@ -98,8 +117,8 @@ export default function PortfolioPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleExportPDF} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-dark-200 border border-dark-400/50 text-gray-300 hover:text-white hover:bg-dark-300 transition-colors">
-            <FileDown className="w-3.5 h-3.5" /> PDF
+          <button onClick={handleExportCSV} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium bg-dark-200 border border-dark-400/50 text-gray-300 hover:text-white hover:bg-dark-300 transition-colors">
+            <FileDown className="w-3.5 h-3.5" /> CSV
           </button>
           <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-accent-green/10 text-accent-green border border-accent-green/30 hover:bg-accent-green/20 transition-colors">
             <Plus className="w-3.5 h-3.5" /> {t('addHolding')}
