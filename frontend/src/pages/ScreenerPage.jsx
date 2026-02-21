@@ -114,7 +114,7 @@ export default function ScreenerPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-dark-300/50">
-                  {['Symbol', 'Name', 'Price', 'Change', 'P/E', 'Mkt Cap', 'Div Yield', 'Sector'].map((h) => (
+                  {['Symbol', 'Name', 'Price', 'Change', 'P/E', 'Mkt Cap', 'Div Yield'].map((h) => (
                     <th key={h} className="text-left text-xs font-semibold text-gray-400 px-4 py-3">{h}</th>
                   ))}
                 </tr>
@@ -136,7 +136,6 @@ export default function ScreenerPage() {
                       <td className="px-4 py-3 text-sm font-mono text-gray-300">{stock.pe_ratio?.toFixed(1) || '—'}</td>
                       <td className="px-4 py-3 text-sm font-mono text-gray-300">{stock.market_cap ? `$${(stock.market_cap / 1e9).toFixed(1)}B` : '—'}</td>
                       <td className="px-4 py-3 text-sm font-mono text-gray-300">{stock.dividend_yield ? `${stock.dividend_yield}%` : '—'}</td>
-                      <td className="px-4 py-3 text-xs text-gray-400">{stock.sector}</td>
                     </tr>
                   );
                 })}
