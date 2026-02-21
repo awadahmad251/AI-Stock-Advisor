@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Query, HTTPException
 from services.stock_service import stock_service, _yf_session
+import logging
 from services.news_service import news_service
 from services.sentiment_service import analyze_sentiment
 from services import yahoo_direct
@@ -190,15 +191,42 @@ async def earnings_calendar():
     if _earnings_cache["val"] and (now - _earnings_cache["ts"] < _EARNINGS_TTL):
         return {"earnings": _earnings_cache["val"]}
 
+    logger = logging.getLogger("investiq")
+
     companies = stock_service.get_sp500_list()
     # use batch fetch but limit scope to first 15 tickers to reduce latency
     symbols = [c["symbol"] for c in companies[:15]]
-    batch = stock_service.get_stock_data_batch(symbols, period="1d")
+
+    batch = {}
+    try:
+        # attempt bulk batch fetch in a thread with a generous timeout
+        batch = await asyncio.wait_for(
+            asyncio.to_thread(stock_service.get_stock_data_batch, symbols, "1d"),
+            timeout=50,
+        )
+    except asyncio.TimeoutError:
+        logger.warning("earnings: batch fetch timed out; falling back to per-symbol fetch")
+        # fallback: fetch sequentially with per-symbol timeouts to ensure progress
+        for sym in symbols:
+            try:
+                data = await asyncio.wait_for(
+                    asyncio.to_thread(stock_service.get_stock_data, sym, "1d"),
+                    timeout=8,
+                )
+                if data:
+                    batch[sym] = data
+            except asyncio.TimeoutError:
+                logger.warning(f"earnings: timeout fetching {sym}")
+            except Exception as e:
+                logger.warning(f"earnings: error fetching {sym}: {e}")
+    except Exception as e:
+        logger.warning(f"earnings: unexpected error during batch fetch: {e}")
 
     earnings = []
     for sym in symbols:
         data = batch.get(sym)
         if not data:
+            logger.debug(f"earnings: no data for {sym}")
             continue
         ed = data.get("earnings_date") or data.get("earnings")
         if ed:

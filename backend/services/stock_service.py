@@ -5,7 +5,7 @@ import os
 import time
 import threading
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, wait
 from config import DATA_PATH
 from services import yahoo_direct
 
@@ -67,16 +67,29 @@ class StockService:
             self._executor.submit(self.get_stock_data, t, period): t
             for t in tickers
         }
-        for fut in as_completed(futures, timeout=60):
-            ticker = futures[fut]
+        try:
+            # wait for futures up to timeout, then process completed ones
+            done, not_done = wait(list(futures.keys()), timeout=60)
+        except Exception:
+            done = set()
+            not_done = set(futures.keys())
+
+        for fut in done:
+            ticker = futures.get(fut)
             try:
                 data = fut.result()
                 if data:
-                    # normalize sector: prefer data's sector when valid, else use sector_map
                     sec = data.get("sector")
                     if not sec or str(sec).strip().upper() in ("N/A", ""):
                         data["sector"] = sector_map.get(ticker.upper(), "N/A")
                     results[ticker] = data
+            except Exception:
+                continue
+
+        # cancel any unfinished futures to free resources
+        for fut in not_done:
+            try:
+                fut.cancel()
             except Exception:
                 pass
         return results
@@ -404,11 +417,27 @@ class StockService:
         for sym, name in top_stocks.items():
             futures[self._executor.submit(fetch_ticker, sym, name, False)] = sym
 
+        # wait up to timeout for any futures to complete, then collect finished results
         results = []
-        for fut in as_completed(futures, timeout=45):
-            result = fut.result()
-            if result:
-                results.append(result)
+        try:
+            done, not_done = wait(list(futures.keys()), timeout=45)
+        except Exception:
+            done = set()
+            not_done = set(futures.keys())
+
+        for fut in done:
+            try:
+                result = fut.result()
+                if result:
+                    results.append(result)
+            except Exception:
+                continue
+
+        for fut in not_done:
+            try:
+                fut.cancel()
+            except Exception:
+                pass
 
         # Sort: indices first (in order), then stocks (in order)
         index_order = list(indices.keys())
