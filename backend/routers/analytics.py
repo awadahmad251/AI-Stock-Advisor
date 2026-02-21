@@ -11,7 +11,7 @@ router = APIRouter()
 
 # simple in-memory cache for earnings (TTL seconds)
 _earnings_cache = {"ts": 0, "val": None}
-_EARNINGS_TTL = 300
+_EARNINGS_TTL = 120
 
 TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(\.?[A-Z])?$')
 
@@ -191,8 +191,8 @@ async def earnings_calendar():
         return {"earnings": _earnings_cache["val"]}
 
     companies = stock_service.get_sp500_list()
-    # use batch fetch but limit scope to first 30 tickers to reduce latency
-    symbols = [c["symbol"] for c in companies[:30]]
+    # use batch fetch but limit scope to first 15 tickers to reduce latency
+    symbols = [c["symbol"] for c in companies[:15]]
     batch = stock_service.get_stock_data_batch(symbols, period="1d")
 
     earnings = []

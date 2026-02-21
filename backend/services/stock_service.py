@@ -58,6 +58,11 @@ class StockService:
     def get_stock_data_batch(self, tickers, period="5d"):
         """Fetch stock data for multiple tickers concurrently."""
         results = {}
+        # build a quick map of company sectors from S&P 500 list so we can
+        # ensure every returned data object has a sensible `sector` value
+        companies = self.get_sp500_list() or []
+        sector_map = {c["symbol"].upper(): c.get("sector", "N/A") for c in companies}
+
         futures = {
             self._executor.submit(self.get_stock_data, t, period): t
             for t in tickers
@@ -67,6 +72,10 @@ class StockService:
             try:
                 data = fut.result()
                 if data:
+                    # normalize sector: prefer data's sector when valid, else use sector_map
+                    sec = data.get("sector")
+                    if not sec or str(sec).strip().upper() in ("N/A", ""):
+                        data["sector"] = sector_map.get(ticker.upper(), "N/A")
                     results[ticker] = data
             except Exception:
                 pass
