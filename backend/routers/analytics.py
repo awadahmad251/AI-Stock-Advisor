@@ -9,6 +9,10 @@ import yfinance as yf
 
 router = APIRouter()
 
+# simple in-memory cache for earnings (TTL seconds)
+_earnings_cache = {"ts": 0, "val": None}
+_EARNINGS_TTL = 300
+
 TICKER_PATTERN = re.compile(r'^[A-Z]{1,5}(\.?[A-Z])?$')
 
 def validate_ticker(ticker: str) -> str:
@@ -180,9 +184,15 @@ async def sector_heatmap():
 @router.get("/earnings")
 async def earnings_calendar():
     """Get upcoming earnings dates for major S&P 500 stocks — concurrent"""
+    # caching to avoid repeated heavy fetches
+    import time
+    now = time.time()
+    if _earnings_cache["val"] and (now - _earnings_cache["ts"] < _EARNINGS_TTL):
+        return {"earnings": _earnings_cache["val"]}
+
     companies = stock_service.get_sp500_list()
-    # use batch fetch to leverage yahoo_direct's faster summary including earnings_date
-    symbols = [c["symbol"] for c in companies[:100]]
+    # use batch fetch but limit scope to first 30 tickers to reduce latency
+    symbols = [c["symbol"] for c in companies[:30]]
     batch = stock_service.get_stock_data_batch(symbols, period="1d")
 
     earnings = []
@@ -204,4 +214,6 @@ async def earnings_calendar():
             })
 
     earnings.sort(key=lambda x: x.get("earnings_date", "9999"))
+    _earnings_cache["val"] = earnings
+    _earnings_cache["ts"] = now
     return {"earnings": earnings}
