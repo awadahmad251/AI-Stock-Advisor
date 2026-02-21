@@ -311,11 +311,19 @@ investiq/
 
 ## Deployment
 
-### Render.com (Recommended — Free Tier)
+### Vercel (Frontend Hosting)
+
+1. Push to GitHub
+2. Go to [vercel.com](https://vercel.com) and create a new project
+3. Select the `frontend` directory as the root for deployment
+4. Set build command: `npm run build` and output directory: `dist`
+5. Deploy — Vercel will auto-build and host your React frontend
+
+### Render.com (Backend Hosting — Optional)
 
 1. Push to GitHub
 2. Go to [render.com](https://render.com) and select New Blueprint
-3. Connect your repo — `render.yaml` auto-configures both services
+3. Connect your repo — `render.yaml` auto-configures backend service
 4. Add environment variables: `GROQ_API_KEY`, `NEWS_API_KEY`, `JWT_SECRET`
 5. Deploy
 
