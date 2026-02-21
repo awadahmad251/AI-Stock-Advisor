@@ -86,6 +86,24 @@ export default function EarningsPage() {
           <h1 className="text-xl font-bold text-white">{t('earnings')}</h1>
           <p className="text-xs text-gray-500">Upcoming S&P 500 earnings releases</p>
         </div>
+        <div className="ml-auto">
+          <button
+            onClick={async () => {
+              setLoading(true);
+              try {
+                const d = await getEarningsCalendar(true);
+                setData(d);
+              } catch (e) {
+                console.error(e);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-dark-200 border border-dark-400/50 text-gray-300 hover:text-white hover:bg-dark-300 transition-colors"
+          >
+            <RefreshCcw className="w-4 h-4" /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Summary Stats */}

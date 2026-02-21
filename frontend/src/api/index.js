@@ -184,8 +184,17 @@ export const getSentiment = (ticker) =>
 export const getSectorHeatmap = () =>
   cachedGet('/heatmap', { timeout: 120000 }, 300000);
 
-export const getEarningsCalendar = () =>
-  cachedGet('/earnings', { timeout: 120000 }, 600000);
+export const getEarningsCalendar = (force = false) => {
+  if (force) {
+    return api.get('/earnings', { timeout: 120000 }).then((res) => {
+      // update client cache for future calls
+      const key = '/earnings' + JSON.stringify({});
+      _apiCache.set(key, { data: res.data, ts: Date.now() });
+      return res.data;
+    });
+  }
+  return cachedGet('/earnings', { timeout: 120000 }, 600000);
+};
 
 // ── Reports ──
 export const generateReport = async (symbol) => {
