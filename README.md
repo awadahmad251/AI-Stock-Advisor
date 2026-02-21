@@ -319,6 +319,14 @@ investiq/
 4. Set build command: `npm run build` and output directory: `dist`
 5. Deploy — Vercel will auto-build and host your React frontend
 
+### Hugging Face Spaces (Backend Hosting)
+
+1. Push to GitHub
+2. Go to [huggingface.co/spaces](https://huggingface.co/spaces) and create a new Space
+3. Select "Python" as the runtime and point to your `backend` directory
+4. Set your environment variables: `GROQ_API_KEY`, `NEWS_API_KEY`, `JWT_SECRET`
+5. Deploy — Spaces will build and host your FastAPI backend
+
 ### Render.com (Backend Hosting — Optional)
 
 1. Push to GitHub
