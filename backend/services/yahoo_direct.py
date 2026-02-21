@@ -142,7 +142,7 @@ def get_quote_summary(symbol: str) -> dict | None:
 
     url = f"https://query2.finance.yahoo.com/v10/finance/quoteSummary/{symbol}"
     params = {
-        "modules": "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile",
+        "modules": "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile,calendarEvents",
     }
     if _cookie_cache["crumb"]:
         params["crumb"] = _cookie_cache["crumb"]
@@ -169,6 +169,27 @@ def get_quote_summary(symbol: str) -> dict | None:
                 return v.get("raw") or v.get("fmt")
             return v
 
+        # parse earnings date from calendarEvents if present
+        cal = results[0].get('calendarEvents', {})
+        earnings_date = None
+        try:
+            earnings = cal.get('earnings', {})
+            if earnings:
+                ed = earnings.get('earningsDate')
+                # earningsDate may be a list of dicts or a single dict/value
+                if isinstance(ed, list) and len(ed) > 0:
+                    first = ed[0]
+                    if isinstance(first, dict):
+                        earnings_date = first.get('raw') or first.get('fmt')
+                    else:
+                        earnings_date = first
+                elif isinstance(ed, dict):
+                    earnings_date = ed.get('raw') or ed.get('fmt')
+                else:
+                    earnings_date = ed
+        except Exception:
+            earnings_date = None
+
         return {
             "symbol": symbol,
             "shortName": _val(price, "shortName"),
@@ -193,6 +214,7 @@ def get_quote_summary(symbol: str) -> dict | None:
             "industry": profile.get("industry", ""),
             "longBusinessSummary": (profile.get("longBusinessSummary") or "")[:500],
             "currency": _val(price, "currency") or "USD",
+            "earnings_date": earnings_date,
             "exchange": _val(price, "exchangeName"),
         }
     except Exception as e:

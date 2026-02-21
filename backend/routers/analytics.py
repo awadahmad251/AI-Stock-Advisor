@@ -181,51 +181,27 @@ async def sector_heatmap():
 async def earnings_calendar():
     """Get upcoming earnings dates for major S&P 500 stocks — concurrent"""
     companies = stock_service.get_sp500_list()
-    symbols = [c["symbol"] for c in companies[:20]]
-
-    def fetch_earnings(sym):
-        try:
-            stock = yf.Ticker(sym, session=_yf_session)
-            cal = stock.calendar
-            if cal is not None and not (hasattr(cal, 'empty') and cal.empty):
-                if isinstance(cal, dict):
-                    date = cal.get("Earnings Date")
-                    if date:
-                        if isinstance(date, list):
-                            date = date[0]
-                        return {
-                            "symbol": sym,
-                            "name": next((c["name"] for c in companies if c["symbol"] == sym), sym),
-                            "earnings_date": str(date)[:10],
-                            "sector": next((c["sector"] for c in companies if c["symbol"] == sym), "N/A"),
-                        }
-                else:
-                    if "Earnings Date" in cal.columns:
-                        dates = cal["Earnings Date"].dropna()
-                        if len(dates) > 0:
-                            return {
-                                "symbol": sym,
-                                "name": next((c["name"] for c in companies if c["symbol"] == sym), sym),
-                                "earnings_date": str(dates.iloc[0])[:10],
-                                "sector": next((c["sector"] for c in companies if c["symbol"] == sym), "N/A"),
-                            }
-        except Exception:
-            pass
-        return None
+    # use batch fetch to leverage yahoo_direct's faster summary including earnings_date
+    symbols = [c["symbol"] for c in companies[:100]]
+    batch = stock_service.get_stock_data_batch(symbols, period="1d")
 
     earnings = []
-    def _fetch_all_earnings():
-        from concurrent.futures import ThreadPoolExecutor, as_completed
-        results = []
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            futures = {executor.submit(fetch_earnings, sym): sym for sym in symbols}
-            for fut in as_completed(futures, timeout=60):
-                result = fut.result()
-                if result:
-                    results.append(result)
-        return results
-
-    earnings = await asyncio.to_thread(_fetch_all_earnings)
+    for sym in symbols:
+        data = batch.get(sym)
+        if not data:
+            continue
+        ed = data.get("earnings_date") or data.get("earnings")
+        if ed:
+            # normalize date string to YYYY-MM-DD if possible
+            ed_str = str(ed)
+            if len(ed_str) >= 10:
+                ed_str = ed_str[:10]
+            earnings.append({
+                "symbol": data.get("symbol", sym),
+                "name": data.get("name") or next((c["name"] for c in companies if c["symbol"] == sym), sym),
+                "earnings_date": ed_str,
+                "sector": data.get("sector") or next((c["sector"] for c in companies if c["symbol"] == sym), "N/A"),
+            })
 
     earnings.sort(key=lambda x: x.get("earnings_date", "9999"))
     return {"earnings": earnings}

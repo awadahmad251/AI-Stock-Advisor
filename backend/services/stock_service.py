@@ -203,7 +203,8 @@ class StockService:
                 "sector": s.get("sector") or "N/A",
                 "industry": s.get("industry") or "N/A",
                 "description": s.get("longBusinessSummary", "")[:500],
-                "history": history_data,
+                    "history": history_data,
+                    "earnings_date": s.get("earnings_date"),
             }
         except Exception as e:
             logger.warning(f"yahoo_direct stock_data {ticker}: {e}")
