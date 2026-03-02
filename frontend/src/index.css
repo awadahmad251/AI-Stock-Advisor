@@ -247,3 +247,127 @@ body, .dark-theme {
   0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
+
+/* ================================================================
+   Backend Wake-Up Splash Screen
+   ================================================================ */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0e17;
+  overflow: hidden;
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.splash-fade-out {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+/* floating blobs */
+.splash-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.25;
+  animation: blobFloat 8s ease-in-out infinite alternate;
+}
+.splash-blob-1 { width: 400px; height: 400px; background: #10b981; top: -100px; left: -100px; }
+.splash-blob-2 { width: 350px; height: 350px; background: #3b82f6; bottom: -80px; right: -80px; animation-delay: 2s; }
+.splash-blob-3 { width: 250px; height: 250px; background: #8b5cf6; top: 40%; left: 60%; animation-delay: 4s; }
+@keyframes blobFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(30px, -20px) scale(1.1); }
+}
+
+/* card */
+.splash-card {
+  position: relative;
+  z-index: 1;
+  background: rgba(15, 20, 30, 0.85);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px;
+  padding: 40px 36px 32px;
+  max-width: 420px;
+  width: 90%;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+  animation: cardIn 0.5s ease-out;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* logo row */
+.splash-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+.splash-logo-icon { flex-shrink: 0; }
+.splash-logo-text { font-size: 26px; font-weight: 700; background: linear-gradient(135deg, #10b981, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+/* steps */
+.splash-steps { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+.splash-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+.splash-step.pending { opacity: 0.35; }
+.splash-step.active  { background: rgba(16,185,129,0.08); color: #10b981; font-weight: 600; }
+.splash-step.done    { opacity: 0.6; text-decoration: line-through; }
+.splash-step-icon    { font-size: 18px; }
+.splash-step-label   { flex: 1; }
+.splash-step-check   { color: #10b981; font-weight: 700; font-size: 16px; }
+.splash-step-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(16,185,129,0.25);
+  border-top-color: #10b981;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* progress bar */
+.splash-bar-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.splash-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+  transition: width 0.8s ease;
+}
+
+/* elapsed */
+.splash-elapsed { text-align: center; font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+
+/* tip */
+.splash-tip {
+  background: rgba(255,255,255,0.04);
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-height: 60px;
+}
+.splash-tip-label { font-size: 11px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.5px; }
+.splash-tip-text  { font-size: 13px; color: #d1d5db; margin-top: 4px; transition: opacity 0.3s; }
+
+/* patience note */
+.splash-patience {
+  text-align: center;
+  font-size: 12px;
+  color: #f59e0b;
+  margin-top: 14px;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

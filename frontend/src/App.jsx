@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import PageSkeleton from './components/PageSkeleton';
 import ErrorBoundary from './components/ErrorBoundary';
+import BackendSplash from './components/BackendSplash';
 import { getMarketSummary, ping, checkHealth } from './api';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
@@ -25,6 +26,7 @@ export default function App() {
   // 'connecting' | 'loading-ai' | 'ready'
   const [connState, setConnState] = useState('connecting');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showSplash, setShowSplash] = useState(true);
 
   // Listen for auth:expired events (401 from interceptor)
   useEffect(() => {
@@ -32,6 +34,11 @@ export default function App() {
     window.addEventListener('auth:expired', handler);
     return () => window.removeEventListener('auth:expired', handler);
   }, [logout]);
+
+  // Pre-warm: ping backend even before login so it starts waking up immediately
+  useEffect(() => {
+    ping().catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -127,6 +134,18 @@ export default function App() {
     return <LoginPage />;
   }
 
+  // Show splash while backend wakes up (only on first load)
+  if (showSplash && connState === 'connecting') {
+    return (
+      <BackendSplash
+        onReady={(state) => {
+          setConnState(state);
+          setShowSplash(false);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-dark dark:bg-dark light:bg-gray-50">
       {/* Sidebar Navigation */}
@@ -139,7 +158,7 @@ export default function App() {
         {connState === 'connecting' && (
           <div className="bg-accent-red/10 border-b border-accent-red/30 px-6 py-2 text-center text-sm text-accent-red flex items-center justify-center gap-2">
             <span className="inline-block w-2 h-2 rounded-full bg-accent-red animate-pulse" />
-            Connecting to backend server... Start it with: <code className="bg-dark-200 px-2 py-0.5 rounded text-xs">cd backend &amp;&amp; uvicorn main:app --reload</code>
+            Reconnecting to server — please wait…
           </div>
         )}
 
