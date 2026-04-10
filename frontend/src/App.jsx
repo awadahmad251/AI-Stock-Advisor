@@ -50,7 +50,7 @@ export default function App() {
       try {
         // First try the fast /api/ping — responds even while RAG loads
         const res = await ping();
-        if (res.rag_ready) {
+        if (res.ready || res.rag_ready || res.rag_disabled) {
           setConnState('ready');
           return 'ready';
         }

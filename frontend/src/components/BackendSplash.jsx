@@ -47,7 +47,7 @@ export default function BackendSplash({ onReady }) {
       try {
         const res = await ping();
         if (cancelled) return;
-        if (res.rag_ready) {
+        if (res.ready || res.rag_ready || res.rag_disabled) {
           setStep(3); // ready
           // small delay so user sees "Ready!" before splash disappears
           setTimeout(() => {

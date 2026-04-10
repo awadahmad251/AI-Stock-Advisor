@@ -260,9 +260,12 @@ async def root():
 @app.get("/api/ping")
 async def ping():
     """Ultra-fast endpoint — responds even while RAG is still loading."""
+    rag_disabled = startup_state.get("rag_error") == "RAG startup initialization disabled by design"
     return {
         "status": "ok",
         "rag_ready": startup_state["rag_ready"],
+        "ready": True,
+        "rag_disabled": rag_disabled,
     }
 
 
