@@ -34,12 +34,18 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_DEFAUL
 startup_state = {"rag_ready": False, "rag_error": None}
 
 
+def _truthy_env(name: str, default: str = "false") -> bool:
+    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup: init DB + kick off RAG init in background"""
     # Initialize database tables
     init_db()
     logger.info("Database initialized")
+
+    enable_rag_startup = _truthy_env("ENABLE_RAG_STARTUP", "false")
 
     async def _init_rag():
         try:
@@ -50,8 +56,12 @@ async def lifespan(app: FastAPI):
             startup_state["rag_error"] = str(e)
             logger.error(f"RAG init failed: {e}")
 
-    # Non-blocking: server starts right away, RAG loads in background
-    asyncio.create_task(_init_rag())
+    # Non-blocking startup: by default, do not initialize heavy RAG models at boot.
+    if enable_rag_startup:
+        asyncio.create_task(_init_rag())
+    else:
+        startup_state["rag_error"] = "RAG startup initialization disabled"
+        logger.info("Skipping RAG startup initialization (ENABLE_RAG_STARTUP=false)")
     yield
 
 
