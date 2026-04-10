@@ -7,7 +7,6 @@ from typing import List, Optional
 import json
 import re
 import os
-import asyncio
 import logging
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -34,34 +33,16 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[RATE_LIMIT_DEFAUL
 startup_state = {"rag_ready": False, "rag_error": None}
 
 
-def _truthy_env(name: str, default: str = "false") -> bool:
-    return os.getenv(name, default).strip().lower() in {"1", "true", "yes", "on"}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: init DB + kick off RAG init in background"""
+    """Startup: init DB only. Keep heavy RAG init out of boot path for deploy health."""
     # Initialize database tables
     init_db()
-    logger.info("Database initialized")
+    logger.info("Database initialized | deploy marker: 2026-04-10-rag-startup-disabled")
 
-    enable_rag_startup = _truthy_env("ENABLE_RAG_STARTUP", "false")
-
-    async def _init_rag():
-        try:
-            await rag_service.initialize()
-            startup_state["rag_ready"] = True
-            logger.info("RAG pipeline ready")
-        except Exception as e:
-            startup_state["rag_error"] = str(e)
-            logger.error(f"RAG init failed: {e}")
-
-    # Non-blocking startup: by default, do not initialize heavy RAG models at boot.
-    if enable_rag_startup:
-        asyncio.create_task(_init_rag())
-    else:
-        startup_state["rag_error"] = "RAG startup initialization disabled"
-        logger.info("Skipping RAG startup initialization (ENABLE_RAG_STARTUP=false)")
+    startup_state["rag_ready"] = False
+    startup_state["rag_error"] = "RAG startup initialization disabled by design"
+    logger.info("Skipping RAG startup initialization to prevent container launch timeout")
     yield
 
 
