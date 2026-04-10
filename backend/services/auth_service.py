@@ -6,6 +6,7 @@ import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError, OperationalError, SQLAlchemyError
 
 from database import get_db
 from models import User
@@ -52,16 +53,27 @@ def get_user_by_username(db: Session, username: str) -> Optional[User]:
 
 
 def create_user(db: Session, email: str, username: str, password: str, full_name: str = "") -> User:
-    user = User(
-        email=email.lower().strip(),
-        username=username.strip(),
-        hashed_password=hash_password(password),
-        full_name=full_name.strip(),
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    try:
+        user = User(
+            email=email.lower().strip(),
+            username=username.strip(),
+            hashed_password=hash_password(password),
+            full_name=full_name.strip(),
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    except IntegrityError:
+        db.rollback()
+        # Handles race conditions where another request created the same user.
+        raise HTTPException(status_code=400, detail="Email or username already exists")
+    except OperationalError:
+        db.rollback()
+        raise HTTPException(status_code=503, detail="Database temporarily unavailable")
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Database error while creating user")
 
 
 def authenticate_user(db: Session, email: str, password: str) -> Optional[User]:
