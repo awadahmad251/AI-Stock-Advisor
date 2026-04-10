@@ -1,8 +1,6 @@
 import os
 import json
 import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
 from config import FAISS_INDEX_PATH, DATA_PATH, EMBEDDING_MODEL, TOP_K_RESULTS
 from services.stock_service import stock_service
 
@@ -13,6 +11,8 @@ class RAGService:
         self.index = None
         self.documents = []
         self.initialized = False
+        self._faiss = None
+        self._init_error = None
 
     async def initialize(self):
         """Initialize the RAG service — load model and build/load FAISS index"""
@@ -20,10 +20,20 @@ class RAGService:
         print("  Initializing RAG Service")
         print("=" * 60)
 
-        # Load embedding model
-        print(f"  Loading embedding model: {EMBEDDING_MODEL}")
-        self.model = SentenceTransformer(EMBEDDING_MODEL)
-        print("  Embedding model loaded successfully")
+        # Lazy import heavy ML deps so API can boot even if RAG deps are unavailable.
+        try:
+            import faiss
+            from sentence_transformers import SentenceTransformer
+
+            self._faiss = faiss
+            print(f"  Loading embedding model: {EMBEDDING_MODEL}")
+            self.model = SentenceTransformer(EMBEDDING_MODEL)
+            print("  Embedding model loaded successfully")
+        except Exception as e:
+            self._init_error = f"RAG dependencies unavailable: {e}"
+            print(f"  WARNING: {self._init_error}")
+            print("  Continuing without RAG context")
+            return
 
         # Check for existing index
         index_file = os.path.join(FAISS_INDEX_PATH, "index.faiss")
@@ -31,7 +41,7 @@ class RAGService:
 
         if os.path.exists(index_file) and os.path.exists(docs_file):
             print("  Loading existing FAISS index...")
-            self.index = faiss.read_index(index_file)
+            self.index = self._faiss.read_index(index_file)
             with open(docs_file, "r", encoding="utf-8") as f:
                 self.documents = json.load(f)
             self.initialized = True
@@ -45,13 +55,13 @@ class RAGService:
             print(f"  Generating embeddings for {len(texts)} documents...")
             embeddings = self.model.encode(texts, show_progress_bar=True, batch_size=64)
             dimension = embeddings.shape[1]
-            self.index = faiss.IndexFlatIP(dimension)
+            self.index = self._faiss.IndexFlatIP(dimension)
             embeddings = embeddings.astype("float32")
-            faiss.normalize_L2(embeddings)
+            self._faiss.normalize_L2(embeddings)
             self.index.add(embeddings)
             # Save rebuilt index
             os.makedirs(FAISS_INDEX_PATH, exist_ok=True)
-            faiss.write_index(self.index, index_file)
+            self._faiss.write_index(self.index, index_file)
             self.initialized = True
             print(f"  Rebuilt FAISS index with {len(self.documents)} documents")
         else:
@@ -120,16 +130,16 @@ class RAGService:
 
         # Build FAISS index with cosine similarity
         dimension = embeddings.shape[1]
-        self.index = faiss.IndexFlatIP(dimension)
+        self.index = self._faiss.IndexFlatIP(dimension)
 
         # Normalize for cosine similarity
         embeddings = embeddings.astype("float32")
-        faiss.normalize_L2(embeddings)
+        self._faiss.normalize_L2(embeddings)
         self.index.add(embeddings)
 
         # Persist to disk
         os.makedirs(FAISS_INDEX_PATH, exist_ok=True)
-        faiss.write_index(self.index, os.path.join(FAISS_INDEX_PATH, "index.faiss"))
+        self._faiss.write_index(self.index, os.path.join(FAISS_INDEX_PATH, "index.faiss"))
         with open(
             os.path.join(FAISS_INDEX_PATH, "documents.json"), "w", encoding="utf-8"
         ) as f:
@@ -144,7 +154,7 @@ class RAGService:
             return []
 
         query_embedding = self.model.encode([query]).astype("float32")
-        faiss.normalize_L2(query_embedding)
+        self._faiss.normalize_L2(query_embedding)
 
         scores, indices = self.index.search(query_embedding, top_k)
 
@@ -181,6 +191,7 @@ class RAGService:
         """Get RAG service status"""
         return {
             "initialized": self.initialized,
+            "init_error": self._init_error,
             "total_documents": len(self.documents),
             "index_size": self.index.ntotal if self.index else 0,
         }
